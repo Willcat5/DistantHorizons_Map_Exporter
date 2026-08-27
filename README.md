@@ -39,7 +39,7 @@ python main.py render <database> [options]
 | `-s`, `--scale` | Downscale factor for performance/previews. `2` = half res, `4` = quarter res, etc.                                              |
 | `-y`, `--y-level` | Render a specific Y level instead of top-down                                                                                   |
 | `--all-below` | With `-y`, show all blocks at or below that Y level                                                                             |
-| `--find` | Highlight all occurrences of a block (e.g. `white_wool`)                                                                        |
+| `--find` | Highlight all occurrences of a block (e.g. `white_wool`) Can accept multiple blocks at once (eg. `barrel chest white_wool`)     |
 | `--find-size` | Highlight square radius for `--find`. Default `1` = 3x3, use `3` for 7x7                                                        |
 | `--crop` | Crop to only render certain pixel region on the full-res map: `X1 Y1 X2 Y2` (recommended for cutting up large detailed renders) |
 
