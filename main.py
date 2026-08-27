@@ -498,11 +498,18 @@ def cmd_render(args):
                     px, pz2 = fx + dx, fz + dz
                     if 0 <= px < img_width and 0 <= pz2 < img_height:
                         img_array[pz2, px] = surround
-        for fx, fz, _ in find_positions:
+        for fx, fz, name in find_positions:
+            matched_pat = name
+            for pat in find_blocks:
+                if fnmatch.fnmatch(name, pat):
+                    matched_pat = pat
+                    break
+            rgb = pattern_colors.get(matched_pat, (255, 0, 255))
+            center = np.array([(rgb[0] + 255) // 2, (rgb[1] + 255) // 2, (rgb[2] + 255) // 2], dtype=np.uint8)
             px, pz2 = fx, fz
             if 0 <= px < img_width and 0 <= pz2 < img_height:
-                img_array[pz2, px] = cyan
-        print(f"  Highlighted {len(find_positions)} locations (cyan center, colored surround)")
+                img_array[pz2, px] = center
+        print(f"  Highlighted {len(find_positions)} locations (tinted center, colored surround)")
 
     if unknown_blocks:
         print(f"\n  {len(unknown_blocks)} unmapped block states (using default color)")
