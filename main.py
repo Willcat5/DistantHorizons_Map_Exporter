@@ -166,11 +166,11 @@ def cmd_render(args):
 
     y_level = args.y_level
     show_all_below = args.all_below
-    find_block = args.find
+    find_blocks = args.find  # list of block names, or None
     find_size = args.find_size
 
-    if find_block is not None:
-        print(f"Block finder: searching for '{find_block}'")
+    if find_blocks is not None:
+        print(f"Block finder: searching for {len(find_blocks)} block(s): {', '.join(find_blocks)}")
     elif y_level is not None:
         if show_all_below:
             print(f"Rendering: show all blocks at/below Y={y_level}")
@@ -337,7 +337,8 @@ def cmd_render(args):
         # Precompute per-section lookups (discarded after this section)
         air_ids = set()
         id_to_color = {}
-        find_ids = set()  # mapping IDs that match --find target
+        find_ids = set()  # mapping IDs that match any --find target
+        id_to_find_name = {}  # mapping ID -> find block name
         for i, entry in enumerate(mapping):
             bs = entry.block_state
             if bs == "AIR" or bs.endswith(":air") or bs.endswith(":cave_air") or bs.endswith(":void_air"):
@@ -350,8 +351,9 @@ def cmd_render(args):
             if brace != -1:
                 base = base[:brace]
             id_to_color[i] = BLOCK_COLORS.get(base, DEFAULT_COLOR)
-            if find_block is not None and base == find_block:
+            if find_blocks is not None and base in find_blocks:
                 find_ids.add(i)
+                id_to_find_name[i] = base
 
         level_min_y = _get_level_min_y(mapping)
 
@@ -382,7 +384,7 @@ def cmd_render(args):
                             pz = wz - crop_min_z
                         else:
                             pz = wz - world_min_z
-                        find_positions.append((base_x // scale, pz // scale))
+                        find_positions.append((base_x // scale, pz // scale, id_to_find_name.get(dp_id, "")))
 
                     # DP selection for rendering
                     if y_level is not None:
@@ -438,19 +440,39 @@ def cmd_render(args):
     else:
         print(f"  No pixels rendered in {elapsed:.1f}s")
 
-    # Block finder: draw pink highlights with cyan center
-    if find_block is not None:
-        print(f"  Found {len(find_positions)} occurrences of '{find_block}'")
-        if find_positions:
-            pink = np.array([255, 0, 255], dtype=np.uint8)
-            cyan = np.array([0, 255, 255], dtype=np.uint8)
-            for fx, fz in find_positions:
-                for dx in range(-find_size, find_size + 1):
-                    for dz in range(-find_size, find_size + 1):
-                        px, pz2 = fx + dx, fz + dz
-                        if 0 <= px < img_width and 0 <= pz2 < img_height:
-                            img_array[pz2, px] = cyan if (dx == 0 and dz == 0) else pink
-            print(f"  Highlighted {len(find_positions)} locations (cyan center, pink surround)")
+    # Block finder: draw highlights with cyan center
+    if find_blocks is not None:
+        # Assign a unique bright color to each find block
+        _FIND_COLORS = [
+            (255, 0, 255),    # pink
+            (255, 165, 0),    # orange
+            (0, 255, 0),      # green
+            (255, 255, 0),    # yellow
+            (0, 165, 255),    # blue
+            (255, 0, 0),      # red
+            (0, 255, 255),    # cyan
+            (255, 0, 165),    # magenta
+        ]
+        block_color_map = {}
+        for i, name in enumerate(find_blocks):
+            block_color_map[name] = _FIND_COLORS[i % len(_FIND_COLORS)]
+        cyan = np.array([0, 255, 255], dtype=np.uint8)
+        # Count per block
+        counts = {}
+        for _, _, name in find_positions:
+            counts[name] = counts.get(name, 0) + 1
+        for name, count in counts.items():
+            print(f"  Found {count} occurrences of '{name}'")
+        # Draw highlights
+        for fx, fz, name in find_positions:
+            rgb = block_color_map.get(name, (255, 0, 255))
+            surround = np.array(rgb, dtype=np.uint8)
+            for dx in range(-find_size, find_size + 1):
+                for dz in range(-find_size, find_size + 1):
+                    px, pz2 = fx + dx, fz + dz
+                    if 0 <= px < img_width and 0 <= pz2 < img_height:
+                        img_array[pz2, px] = cyan if (dx == 0 and dz == 0) else surround
+        print(f"  Highlighted {len(find_positions)} locations (cyan center, colored surround)")
 
     if unknown_blocks:
         print(f"\n  {len(unknown_blocks)} unmapped block states (using default color)")
@@ -512,7 +534,7 @@ def main():
     render_parser.add_argument("-y", "--y-level", type=int, default=None, help="Y level to render (omit for top-down view)")
     render_parser.add_argument("--all-below", action="store_true", help="Show all blocks at or below the specified Y level")
     render_parser.add_argument("-s", "--scale", type=int, default=1, help="Downscale factor (2=half res, 4=quarter res)")
-    render_parser.add_argument("--find", type=str, default=None, metavar="BLOCK", help="Highlight all occurrences of a block (e.g. 'iron_ore', 'diamond_ore')")
+    render_parser.add_argument("--find", type=str, nargs="+", default=None, metavar="BLOCK", help="Highlight occurrences of blocks (e.g. --find iron_ore diamond_ore)")
     render_parser.add_argument("--find-size", type=int, default=1, metavar="N", help="Highlight radius for --find (default: 1 = 3x3, use 3 for 7x7)")
     render_parser.add_argument("--crop", type=int, nargs=4, default=None, metavar=("X1", "Y1", "X2", "Y2"), help="Crop to pixel region on the full-res map (e.g. --crop 1000 2000 3000 4000)")
     render_parser.set_defaults(func=cmd_render)
