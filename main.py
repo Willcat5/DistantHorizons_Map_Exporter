@@ -443,7 +443,6 @@ def cmd_render(args):
 
     # Block finder: draw highlights with cyan center
     if find_blocks is not None:
-        # Assign a unique bright color to each find block
         _FIND_COLORS = [
             (255, 0, 255),    # pink
             (255, 165, 0),    # orange
@@ -454,10 +453,11 @@ def cmd_render(args):
             (0, 255, 255),    # cyan
             (255, 0, 165),    # magenta
         ]
-        block_color_map = {}
-        for i, name in enumerate(find_blocks):
-            block_color_map[name] = _FIND_COLORS[i % len(_FIND_COLORS)]
         cyan = np.array([0, 255, 255], dtype=np.uint8)
+        # One color per --find pattern
+        pattern_colors = {}
+        for i, pat in enumerate(find_blocks):
+            pattern_colors[pat] = _FIND_COLORS[i % len(_FIND_COLORS)]
         # Count per block
         counts = {}
         for _, _, name in find_positions:
@@ -466,7 +466,13 @@ def cmd_render(args):
             print(f"  Found {count} occurrences of '{name}'")
         # Draw highlights — surrounds first, then centers on top
         for fx, fz, name in find_positions:
-            rgb = block_color_map.get(name, (255, 0, 255))
+            # Find which pattern matched this block name
+            matched_pat = name
+            for pat in find_blocks:
+                if fnmatch.fnmatch(name, pat):
+                    matched_pat = pat
+                    break
+            rgb = pattern_colors.get(matched_pat, (255, 0, 255))
             surround = np.array(rgb, dtype=np.uint8)
             for dx in range(-find_size, find_size + 1):
                 for dz in range(-find_size, find_size + 1):
