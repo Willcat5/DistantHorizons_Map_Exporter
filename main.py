@@ -453,6 +453,16 @@ def cmd_render(args):
             (0, 255, 255),    # cyan
             (255, 0, 165),    # magenta
         ]
+        _FIND_COLOR_NAMES = {
+            (255, 0, 255): "Pink",
+            (255, 165, 0): "Orange",
+            (0, 255, 0): "Green",
+            (255, 255, 0): "Yellow",
+            (0, 165, 255): "Blue",
+            (255, 0, 0): "Red",
+            (0, 255, 255): "Cyan",
+            (255, 0, 165): "Magenta",
+        }
         cyan = np.array([0, 255, 255], dtype=np.uint8)
         # One color per --find pattern
         pattern_colors = {}
@@ -463,7 +473,14 @@ def cmd_render(args):
         for _, _, name in find_positions:
             counts[name] = counts.get(name, 0) + 1
         for name, count in counts.items():
-            print(f"  Found {count} occurrences of '{name}'")
+            matched_pat = name
+            for pat in find_blocks:
+                if fnmatch.fnmatch(name, pat):
+                    matched_pat = pat
+                    break
+            rgb = pattern_colors.get(matched_pat, (255, 0, 255))
+            color_name = _FIND_COLOR_NAMES.get(rgb, "Custom")
+            print(f"  Found {count} of '{name}' (highlighted {color_name})")
         # Draw highlights — surrounds first, then centers on top
         for fx, fz, name in find_positions:
             # Find which pattern matched this block name
