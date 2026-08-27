@@ -6,6 +6,7 @@ Usage:
 """
 
 import argparse
+import fnmatch
 import sys
 import time
 from pathlib import Path
@@ -351,7 +352,7 @@ def cmd_render(args):
             if brace != -1:
                 base = base[:brace]
             id_to_color[i] = BLOCK_COLORS.get(base, DEFAULT_COLOR)
-            if find_blocks is not None and base in find_blocks:
+            if find_blocks is not None and any(fnmatch.fnmatch(base, pat) for pat in find_blocks):
                 find_ids.add(i)
                 id_to_find_name[i] = base
 
@@ -540,7 +541,7 @@ def main():
     render_parser.add_argument("-y", "--y-level", type=int, default=None, help="Y level to render (omit for top-down view)")
     render_parser.add_argument("--all-below", action="store_true", help="Show all blocks at or below the specified Y level")
     render_parser.add_argument("-s", "--scale", type=int, default=1, help="Downscale factor (2=half res, 4=quarter res)")
-    render_parser.add_argument("--find", type=str, nargs="+", default=None, metavar="BLOCK", help="Highlight occurrences of blocks (e.g. --find iron_ore diamond_ore)")
+    render_parser.add_argument("--find", type=str, nargs="+", default=None, metavar="BLOCK", help="Highlight blocks by name or wildcard (e.g. --find *bed diamond_ore *dirt)")
     render_parser.add_argument("--find-size", type=int, default=1, metavar="N", help="Highlight radius for --find (default: 1 = 3x3, use 3 for 7x7)")
     render_parser.add_argument("--crop", type=int, nargs=4, default=None, metavar=("X1", "Y1", "X2", "Y2"), help="Crop to pixel region on the full-res map (e.g. --crop 1000 2000 3000 4000)")
     render_parser.set_defaults(func=cmd_render)
