@@ -447,9 +447,8 @@ def cmd_render(args):
             (255, 0, 255),    # pink
             (255, 165, 0),    # orange
             (0, 255, 0),      # green
-            (255, 255, 0),    # yellow
             (0, 165, 255),    # blue
-            (255, 0, 0),      # red
+            (255, 255, 0),    # yellow
             (0, 255, 255),    # cyan
             (255, 0, 165),    # magenta
         ]
@@ -457,13 +456,11 @@ def cmd_render(args):
             (255, 0, 255): "Pink",
             (255, 165, 0): "Orange",
             (0, 255, 0): "Green",
-            (255, 255, 0): "Yellow",
             (0, 165, 255): "Blue",
-            (255, 0, 0): "Red",
+            (255, 255, 0): "Yellow",
             (0, 255, 255): "Cyan",
             (255, 0, 165): "Magenta",
         }
-        cyan = np.array([0, 255, 255], dtype=np.uint8)
         # One color per --find pattern
         pattern_colors = {}
         for i, pat in enumerate(find_blocks):
@@ -504,12 +501,16 @@ def cmd_render(args):
                 if fnmatch.fnmatch(name, pat):
                     matched_pat = pat
                     break
-            rgb = pattern_colors.get(matched_pat, (255, 0, 255))
-            center = np.array([(rgb[0] + 255) // 2, (rgb[1] + 255) // 2, (rgb[2] + 255) // 2], dtype=np.uint8)
+            rgb = pattern_colors.get(matched_pat, (255, 255, 255))
+            # Light centers for all colors except yellow (which darkens)
+            if rgb == (255, 255, 0):
+                center = np.array([rgb[0] // 2, rgb[1] // 2, rgb[2] // 2], dtype=np.uint8)
+            else:
+                center = np.array([(rgb[0] + 255) // 2, (rgb[1] + 255) // 2, (rgb[2] + 255) // 2], dtype=np.uint8)
             px, pz2 = fx, fz
             if 0 <= px < img_width and 0 <= pz2 < img_height:
                 img_array[pz2, px] = center
-        print(f"  Highlighted {len(find_positions)} locations (tinted center, colored surround)")
+        print(f"  Highlighted {len(find_positions)} locations (light centers, colored surround)")
 
     if unknown_blocks:
         print(f"\n  {len(unknown_blocks)} unmapped block states (using default color)")
