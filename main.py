@@ -463,15 +463,21 @@ def cmd_render(args):
             counts[name] = counts.get(name, 0) + 1
         for name, count in counts.items():
             print(f"  Found {count} occurrences of '{name}'")
-        # Draw highlights
+        # Draw highlights — surrounds first, then centers on top
         for fx, fz, name in find_positions:
             rgb = block_color_map.get(name, (255, 0, 255))
             surround = np.array(rgb, dtype=np.uint8)
             for dx in range(-find_size, find_size + 1):
                 for dz in range(-find_size, find_size + 1):
+                    if dx == 0 and dz == 0:
+                        continue  # skip center for now
                     px, pz2 = fx + dx, fz + dz
                     if 0 <= px < img_width and 0 <= pz2 < img_height:
-                        img_array[pz2, px] = cyan if (dx == 0 and dz == 0) else surround
+                        img_array[pz2, px] = surround
+        for fx, fz, _ in find_positions:
+            px, pz2 = fx, fz
+            if 0 <= px < img_width and 0 <= pz2 < img_height:
+                img_array[pz2, px] = cyan
         print(f"  Highlighted {len(find_positions)} locations (cyan center, colored surround)")
 
     if unknown_blocks:
